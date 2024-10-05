@@ -1,0 +1,40 @@
+/* RoomData.css */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh; /* Full height */
+    background-color: #f7f9fc; /* Light background color */
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    border-radius: 10px; /* Rounded corners */
+    font-family: 'Arial', sans-serif; /* Change font family */
+}
+
+h2 {
+    font-size: 2.5rem; /* Larger font size for the title */
+    color: #333; /* Dark color for better readability */
+    margin-bottom: 10px; /* Space below the title */
+}
+
+p {
+    font-size: 1.25rem; /* Medium font size for paragraphs */
+    color: #555; /* Medium gray for paragraph text */
+    margin: 5px 0; /* Space between paragraphs */
+}
+
+button {
+    padding: 10px 20px; /* Padding for buttons */
+    font-size: 1rem; /* Font size for buttons */
+    color: white; /* White text */
+    background-color: #007bff; /* Bootstrap primary color */
+    border: none; /* Remove default border */
+    border-radius: 5px; /* Rounded button */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s ease; /* Smooth transition */
+}
+
+button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}

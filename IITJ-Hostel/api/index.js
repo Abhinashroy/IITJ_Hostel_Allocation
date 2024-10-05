@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User.js');
+const Room = require('./models/RoomData.js');
+const Hostel = require('./models/Hostel');
 // const Place = require('./models/Place.js');
 // const Booking = require('./models/Booking.js');
 const cookieParser = require('cookie-parser');
@@ -18,11 +20,11 @@ const app = express();
 
 const bcryptSalt = bcrypt.genSaltSync(10);
 const jwtSecret = 'fasefraw4r5r3wq45wdfgw34twdfg';
-// // const bucket = 'dawid-booking-app';
+// // // const bucket = 'dawid-booking-app';
 
 app.use(express.json());
 app.use(cookieParser());
-// app.use('/uploads', express.static(__dirname+'/uploads'));
+// // app.use('/uploads', express.static(__dirname+'/uploads'));
 app.use(cors({
   credentials: true,
   origin: 'http://localhost:5173',
@@ -59,12 +61,10 @@ app.use(cors({
 // }
 mongoose.connect(process.env.MONGO_URL);
 app.get('/test', (req,res) => {
-  
   res.json('test ok');
 });
 
 app.post('/register', async (req,res) => {
-  mongoose.connect(process.env.MONGO_URL);
   const {name,email,password} = req.body;
 
   try {
@@ -80,6 +80,7 @@ app.post('/register', async (req,res) => {
   }
 
 });
+
 
 app.post('/login', async (req,res) => {
 //   mongoose.connect(process.env.MONGO_URL);
@@ -104,27 +105,49 @@ app.post('/login', async (req,res) => {
   }
 });
 
+
+app.get('/profile', (req,res) => {
+  // mongoose.connect(process.env.MONGO_URL);
+  const {token} = req.cookies;
+  if (token) {
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err;
+      const {name,email,_id} = await User.findById(userData.id);
+      res.json({name,email,_id});
+    });
+  } else {
+    res.json(null);
+  }
+  
+});
+
+app.post('/logout', (req,res) => {
+  res.cookie('token', '').json(true);
+});
+
+app.get('/hostels', (req, res) => {
+  Hostel.find().then((hostels) => {
+    res.json(hostels);
+  });
+});
+
+// Get all rooms for a hostel
+app.get('/hostels/:hostelId/rooms', (req, res) => {
+  const hostelId = req.params.hostelId;
+  Room.find({ hostel: hostelId }).then((rooms) => {
+    res.json(rooms);
+  });
+});
+
+// Get a specific room
+app.get('/rooms/:roomId', (req, res) => {
+  const roomId = req.params.roomId;
+  Room.findById(roomId).then((room) => {
+    res.json(room);
+  });
+});
+
 app.listen(4000);
-
-
-
-// app.get('/api/profile', (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const {token} = req.cookies;
-//   if (token) {
-//     jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-//       if (err) throw err;
-//       const {name,email,_id} = await User.findById(userData.id);
-//       res.json({name,email,_id});
-//     });
-//   } else {
-//     res.json(null);
-//   }
-// });
-
-// app.post('/api/logout', (req,res) => {
-//   res.cookie('token', '').json(true);
-// });
 
 
 // app.post('/api/upload-by-link', async (req,res) => {

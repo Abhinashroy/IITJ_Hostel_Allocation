@@ -1,4 +1,5 @@
 import React from 'react';
+import '../styles/RoomCard.css';
 
 const RoomCard = ({ room, onAllocate, onDeallocate }) => {
   return (

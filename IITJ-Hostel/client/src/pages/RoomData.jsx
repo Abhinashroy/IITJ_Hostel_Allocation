@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // For navigation
-import RoomFilter from '../components/RoomFilter';
-import '../styles/RoomGrid.css';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom'; // Hook to get room ID from URL
+import '../styles/RoomData.css';
+import axios from 'axios';
 
-// Initial rooms array, now expanded to 83 rooms
 const rooms = [
   { id: 1, number: '101', type: 'Single', occupied: false },
-  { id: 2, number: '102', type: 'Single', occupied: true },
+  { id: 2, number: '102', type: 'Double', occupied: true },
   { id: 3, number: '103', type: 'Single', occupied: true },
   { id: 4, number: '104', type: 'Single', occupied: true },
   { id: 5, number: '105', type: 'Single', occupied: false },
@@ -88,34 +87,29 @@ const rooms = [
   { id: 81, number: '181', type: 'Single', occupied: false },
   { id: 82, number: '182', type: 'Single', occupied: false },
   { id: 83, number: '183', type: 'Single', occupied: false },
+  // Add more rooms here
 ];
 
-const RoomGrid = () => {
-  const [filteredRooms, setFilteredRooms] = useState(rooms);
-  const navigate = useNavigate(); // To programmatically navigate to RoomData
+const RoomData = () => {
+  const { roomId } = useParams(); // Get roomId from URL
+  const room = rooms.find((room) => room.id === parseInt(roomId)); // Find room by ID
 
-  const handleRoomClick = (roomId) => {
-    // Navigate to the RoomData page for the specific room
-    navigate(`/hostels/1/room/${roomId}`);
-  };
+  if (!room) {
+    return <p>Room not found</p>;
+  }
 
   return (
     <div>
-      <h2 style={{ marginBottom: '20px' }}>Rooms in Hostel</h2> {/* Added margin for spacing */}
-      <RoomFilter rooms={rooms} setFilteredRooms={setFilteredRooms} />
-      <div className="rooms-grid">
-        {filteredRooms.map((room) => (
-          <div 
-            key={room.id} 
-            className={`room-icon ${room.occupied ? 'occupied' : 'available'}`} 
-            onClick={() => handleRoomClick(room.id)}
-          >
-            <span>{room.number}</span>
-          </div>
-        ))}
-      </div>
+      <h2>Room Details for Room {room.number}</h2>
+      <p>Type: {room.type}</p>
+      <p>Status: {room.occupied ? 'Occupied' : 'Available'}</p>
+      {room.occupied ? (
+        <button onClick={() => console.log(`Deallocating room: ${room.id}`)}>Deallocate</button>
+      ) : (
+        <button onClick={() => console.log(`Allocating room: ${room.id}`)}>Allocate</button>
+      )}
     </div>
   );
 };
 
-export default RoomGrid;
+export default RoomData;

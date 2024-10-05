@@ -1,0 +1,31 @@
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr); /* 10 rooms in a row */
+    gap: 5px; /* Gap between the room icons */
+    margin-top: 20px; /* Spacing between the title and grid */
+    margin-left: 20px;  /* Add margin from left window border */
+    margin-right: 20px; /* Add margin from right window border */
+  }
+  
+  .room-icon {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px; /* Reduced padding for smaller tile size */
+    text-align: center;
+    cursor: pointer;
+    width: 50px; /* Tile size remains the same */
+    height: 50px; /* Adjusted height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px; /* Font size adjusted */
+  }
+  
+  .room-icon.occupied {
+    background-color: #ffcccc; /* Red background for occupied rooms */
+  }
+  
+  .room-icon.available {
+    background-color: #ccffcc; /* Green background for available rooms */
+  }
+  

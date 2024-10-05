@@ -1,0 +1,12 @@
+/* Hostels.css */
+.hostels-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .hostel-card {
+    flex-basis: calc(33.33% - 20px); /* For three tiles per row */
+    margin-bottom: 20px;
+  }
+  

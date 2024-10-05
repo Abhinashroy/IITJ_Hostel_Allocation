@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
+import '../styles/HostelCard.css';
 const HostelCard = ({ hostel }) => {
   return (
     <div className="hostel-card">
