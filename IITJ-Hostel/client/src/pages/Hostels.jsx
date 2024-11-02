@@ -1,23 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import HostelCard from '../components/HostelCard';
 import '../styles/Hostels.css';
-const hostels = [
-  { id: 1, name: 'Hostel Rohida', totalRooms: 50, availableRooms: 20, image: '/images/hostel-a.jpg' },
-  { id: 2, name: 'Hostel B', totalRooms: 40, availableRooms: 15, image: '/images/hostel-b.jpg' },
-  { id: 3, name: 'Hostel C', totalRooms: 60, availableRooms: 25, image: '/images/hostel-c.jpg' },
-  { id: 4, name: 'Hostel D', totalRooms: 55, availableRooms: 30, image: '/images/hostel-d.jpg' },
-  { id: 5, name: 'Hostel E', totalRooms: 45, availableRooms: 10, image: '/images/hostel-e.jpg' },
-  { id: 6, name: 'Hostel F', totalRooms: 65, availableRooms: 40, image: '/images/hostel-f.jpg' },
-  // Add more hostels here
-];
 
 const Hostels = () => {
+  const [hostels, setHostels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    console.log("Fetching hostels...");
+    axios.get('http://localhost:4000/hostels')
+      .then(response => {
+        console.log('Fetched hostels:', response.data);
+        setHostels(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching hostels:', error);
+        setError('Failed to load hostels. Please try again later.');
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="hostels-container">Loading hostels...</div>;
+  if (error) return <div className="hostels-container">{error}</div>;
+
   return (
-    <div className=''>
-      <h2 className='pl-8 p-4 ' >Hostels</h2>
+    <div className='hostels-container'>
+      <h2 className='text-3xl font-bold mb-8'>Hostels</h2>
       <div className="hostels-list">
         {hostels.map((hostel) => (
-          <HostelCard key={hostel.id} hostel={hostel} />
+          <HostelCard key={hostel._id} hostel={hostel} />
         ))}
       </div>
     </div>

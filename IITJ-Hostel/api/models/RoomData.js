@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
 const roomSchema = new mongoose.Schema({
+    roomNo: String,
     name: String,
-    roolNumber: String,
-    roomNo: Number,
+    rollNo: String,
+    status: String,
     hostel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hostel' }
     });
 

@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const hostelSchema = new mongoose.Schema({
   name: String,
-  rooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }]
+  totalRooms: Number,
+  availableRooms: Number,
+  image: String
 });
 
 const Hostel = mongoose.model('Hostel', hostelSchema);

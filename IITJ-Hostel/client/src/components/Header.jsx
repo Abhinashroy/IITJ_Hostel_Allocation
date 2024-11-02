@@ -17,8 +17,7 @@ export default function Header() {
         <Link to ='/'><div>Home</div></Link>
         <div className="border-l border-gray-300"></div>
         <Link to="/hostels"><div>Hostels</div></Link>
-        <div className="border-l border-gray-300"></div>
-        <Link to="/allocate-room"><div>Allocation</div></Link>       
+        <div className="border-l border-gray-300"></div>       
         <Link to ="/students"> 
         <button className="bg-primary p-1 rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">

@@ -30,35 +30,7 @@ app.use(cors({
   origin: 'http://localhost:5173',
 }));
 
-// async function uploadToS3(path, originalFilename, mimetype) {
-//   const client = new S3Client({
-//     region: 'us-east-1',
-//     credentials: {
-//       accessKeyId: process.env.S3_ACCESS_KEY,
-//       secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-//     },
-//   });
-//   const parts = originalFilename.split('.');
-//   const ext = parts[parts.length - 1];
-//   const newFilename = Date.now() + '.' + ext;
-//   await client.send(new PutObjectCommand({
-//     Bucket: bucket,
-//     Body: fs.readFileSync(path),
-//     Key: newFilename,
-//     ContentType: mimetype,
-//     ACL: 'public-read',
-//   }));
-//   return `https://${bucket}.s3.amazonaws.com/${newFilename}`;
-// }
 
-// function getUserDataFromReq(req) {
-//   return new Promise((resolve, reject) => {
-//     jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) => {
-//       if (err) throw err;
-//       resolve(userData);
-//     });
-//   });
-// }
 mongoose.connect(process.env.MONGO_URL);
 app.get('/test', (req,res) => {
   res.json('test ok');
@@ -125,133 +97,204 @@ app.post('/logout', (req,res) => {
   res.cookie('token', '').json(true);
 });
 
-app.get('/hostels', (req, res) => {
-  Hostel.find().then((hostels) => {
+app.get('/hostels', async (req, res) => {
+  try {
+    const hostels = await Hostel.find();
+    console.log('Hostels found:', hostels);
+    
+    // Add a test hostel if none are found
+    if (hostels.length === 0) {
+      const testHostel = {
+        name: "Test Hostel",
+        totalRooms: 50,
+        availableRooms: 20,
+        image: "https://example.com/test-image.jpg"
+      };
+      hostels.push(testHostel);
+    }
+    
     res.json(hostels);
-  });
+  } catch (error) {
+    console.error('Error fetching hostels:', error);
+    res.status(500).json({ error: 'An error occurred while fetching hostels' });
+  }
 });
 
 // Get all rooms for a hostel
-app.get('/hostels/:hostelId/rooms', (req, res) => {
+app.get('/hostels/:hostelId/rooms', async (req, res) => {
   const hostelId = req.params.hostelId;
-  Room.find({ hostel: hostelId }).then((rooms) => {
+  try {
+    console.log('Fetching rooms for hostel:', hostelId);
+    
+    const hostel = await Hostel.findById(hostelId);
+    if (!hostel) {
+      console.log('Hostel not found');
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+    console.log('Found hostel:', hostel);
+    
+    const rooms = await Room.find({ hostel: hostelId });
+    console.log('Found rooms:', rooms);
+    
     res.json(rooms);
-  });
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.status(500).json({ error: 'An error occurred while fetching rooms' });
+  }
 });
 
 // Get a specific room
-app.get('/rooms/:roomId', (req, res) => {
-  const roomId = req.params.roomId;
-  Room.findById(roomId).then((room) => {
+app.get('/rooms/:hostelId/:roomId', async (req, res) => {
+  const { hostelId, roomId } = req.params;
+  try {
+    const hostel = await Hostel.findById(hostelId);
+    if (!hostel) {
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+    
+    const db = mongoose.connection.useDb('rooms');
+    const HostelRooms = db.model('Room', Room.schema);
+    
+    const room = await HostelRooms.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
     res.json(room);
-  });
+  } catch (error) {
+    res.status(500).json({ error: 'An error occurred while fetching the room' });
+  }
+});
+
+// Add this route if it's missing
+app.get('/hostels/:id', async (req, res) => {
+  try {
+    const hostel = await Hostel.findById(req.params.id);
+    if (!hostel) {
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+    res.json(hostel);
+  } catch (error) {
+    console.error('Error fetching hostel:', error);
+    res.status(500).json({ error: 'An error occurred while fetching the hostel' });
+  }
+});
+
+// Update this route to match the frontend URL pattern
+app.get('/hostels/:hostelId/room/:roomId', async (req, res) => {
+  const { hostelId, roomId } = req.params;
+  try {
+    const hostel = await Hostel.findById(hostelId);
+    if (!hostel) {
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+    
+    // Use the main database connection since rooms are in 'test' database
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    res.json(room);
+  } catch (error) {
+    console.error('Error fetching room:', error);
+    res.status(500).json({ error: 'An error occurred while fetching the room' });
+  }
+});
+
+// Add this new route for room allocation
+app.post('/hostels/:hostelId/room/:roomId/allocate', async (req, res) => {
+  const { hostelId, roomId } = req.params;
+  const { name, rollNo } = req.body;
+  
+  try {
+    const hostel = await Hostel.findById(hostelId);
+    if (!hostel) {
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    if (room.status === 'occupied') {
+      return res.status(400).json({ error: 'Room is already occupied' });
+    }
+
+    // Update room details
+    room.name = name;
+    room.rollNo = rollNo;
+    room.status = 'occupied';
+    await room.save();
+
+    // Update hostel's available rooms count
+    hostel.availableRooms = Math.max(0, hostel.availableRooms - 1);
+    await hostel.save();
+
+    res.json(room);
+  } catch (error) {
+    console.error('Error allocating room:', error);
+    res.status(500).json({ error: 'An error occurred while allocating the room' });
+  }
+});
+
+// Add this new route for room deallocation
+app.post('/hostels/:hostelId/room/:roomId/deallocate', async (req, res) => {
+  const { hostelId, roomId } = req.params;
+  
+  try {
+    const hostel = await Hostel.findById(hostelId);
+    if (!hostel) {
+      return res.status(404).json({ error: 'Hostel not found' });
+    }
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    if (room.status !== 'occupied') {
+      return res.status(400).json({ error: 'Room is not occupied' });
+    }
+
+    // Update room details
+    room.name = '';
+    room.rollNo = '';
+    room.status = 'available';
+    await room.save();
+
+    // Update hostel's available rooms count
+    hostel.availableRooms = Math.min(hostel.totalRooms, hostel.availableRooms + 1);
+    await hostel.save();
+
+    res.json(room);
+  } catch (error) {
+    console.error('Error deallocating room:', error);
+    res.status(500).json({ error: 'An error occurred while deallocating the room' });
+  }
+});
+
+// Get all occupied rooms with student details
+app.get('/rooms/occupied', async (req, res) => {
+  try {
+    const occupiedRooms = await Room.find({ status: 'occupied' })
+      .populate('hostel', 'name'); // This will get the hostel name
+    
+    // Transform the data to include hostel name
+    const students = occupiedRooms.map(room => ({
+      _id: room._id,
+      name: room.name,
+      rollNo: room.rollNo,
+      roomNo: room.roomNo,
+      hostel: room.hostel._id,
+      hostelName: room.hostel.name
+    }));
+    
+    res.json(students);
+  } catch (error) {
+    console.error('Error fetching occupied rooms:', error);
+    res.status(500).json({ error: 'An error occurred while fetching occupied rooms' });
+  }
 });
 
 app.listen(4000);
-
-
-// app.post('/api/upload-by-link', async (req,res) => {
-//   const {link} = req.body;
-//   const newName = 'photo' + Date.now() + '.jpg';
-//   await imageDownloader.image({
-//     url: link,
-//     dest: '/tmp/' +newName,
-//   });
-//   const url = await uploadToS3('/tmp/' +newName, newName, mime.lookup('/tmp/' +newName));
-//   res.json(url);
-// });
-
-// const photosMiddleware = multer({dest:'/tmp'});
-// app.post('/api/upload', photosMiddleware.array('photos', 100), async (req,res) => {
-//   const uploadedFiles = [];
-//   for (let i = 0; i < req.files.length; i++) {
-//     const {path,originalname,mimetype} = req.files[i];
-//     const url = await uploadToS3(path, originalname, mimetype);
-//     uploadedFiles.push(url);
-//   }
-//   res.json(uploadedFiles);
-// });
-
-// app.post('/api/places', (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const {token} = req.cookies;
-//   const {
-//     title,address,addedPhotos,description,price,
-//     perks,extraInfo,checkIn,checkOut,maxGuests,
-//   } = req.body;
-//   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-//     if (err) throw err;
-//     const placeDoc = await Place.create({
-//       owner:userData.id,price,
-//       title,address,photos:addedPhotos,description,
-//       perks,extraInfo,checkIn,checkOut,maxGuests,
-//     });
-//     res.json(placeDoc);
-//   });
-// });
-
-// app.get('/api/user-places', (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const {token} = req.cookies;
-//   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-//     const {id} = userData;
-//     res.json( await Place.find({owner:id}) );
-//   });
-// });
-
-// app.get('/api/places/:id', async (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const {id} = req.params;
-//   res.json(await Place.findById(id));
-// });
-
-// app.put('/api/places', async (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const {token} = req.cookies;
-//   const {
-//     id, title,address,addedPhotos,description,
-//     perks,extraInfo,checkIn,checkOut,maxGuests,price,
-//   } = req.body;
-//   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
-//     if (err) throw err;
-//     const placeDoc = await Place.findById(id);
-//     if (userData.id === placeDoc.owner.toString()) {
-//       placeDoc.set({
-//         title,address,photos:addedPhotos,description,
-//         perks,extraInfo,checkIn,checkOut,maxGuests,price,
-//       });
-//       await placeDoc.save();
-//       res.json('ok');
-//     }
-//   });
-// });
-
-// app.get('/api/places', async (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   res.json( await Place.find() );
-// });
-
-// app.post('/api/bookings', async (req, res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const userData = await getUserDataFromReq(req);
-//   const {
-//     place,checkIn,checkOut,numberOfGuests,name,phone,price,
-//   } = req.body;
-//   Booking.create({
-//     place,checkIn,checkOut,numberOfGuests,name,phone,price,
-//     user:userData.id,
-//   }).then((doc) => {
-//     res.json(doc);
-//   }).catch((err) => {
-//     throw err;
-//   });
-// });
-
-
-
-// app.get('/api/bookings', async (req,res) => {
-//   mongoose.connect(process.env.MONGO_URL);
-//   const userData = await getUserDataFromReq(req);
-//   res.json( await Booking.find({user:userData.id}).populate('place') );
-// });
 
