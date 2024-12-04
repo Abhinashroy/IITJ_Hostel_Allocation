@@ -425,38 +425,45 @@ const upload = multer({ dest: 'uploads/' }); // Temporary storage for uploaded f
 //Endpoint to upload CSV
 app.post('/upload-csv', upload.single('file'), async (req, res) => {
   const results = [];
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', async () => {
-      try {
-        console.log("started to add rooms");
-        // Process each row in the CSV
-        for (const row of results) {
-          const { roomNo, name, rollNo, hostelId } = row; // Adjust based on your CSV structure
-          
-          // Determine the status based on the presence of data
-          const status = (name && rollNo) ? 'occupied' : 'available';
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
 
-          const room = new Room({
-            roomNo,
-            name: name || '', // Set to empty string if not provided
-            rollNo: rollNo || '', // Set to empty string if not provided
-            status,
-            hostel: hostelId, // Assuming hostelId is provided in the CSV
-          });
+    // Process the CSV directly from the uploaded file
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('data', (data) => results.push(data))
+      .on('end', async () => {
+        try {
+          console.log("Started to add rooms");
+          // Process each row in the CSV
+          for (const row of results) {
+            const { roomNo, name, rollNo, hostelId } = row; // Adjust based on your CSV structure
+            
+            // Determine the status based on the presence of data
+            const status = (name && rollNo) ? 'occupied' : 'available';
 
-          await room.save();
+            const room = new Room({
+              roomNo,
+              name: name || '', // Set to empty string if not provided
+              rollNo: rollNo || '', // Set to empty string if not provided
+              status,
+              hostel: hostelId, // Assuming hostelId is provided in the CSV
+            });
+
+            await room.save();
+          }
+          res.status(200).json({ message: 'Rooms added successfully', data: results });
+        } catch (error) {
+          console.error('Error saving rooms:', error);
+          res.status(500).json({ error: 'An error occurred while saving rooms', details: error.message });
         }
-        res.status(200).json({ message: 'Rooms added successfully', data: results });
-      } catch (error) {
-        console.error('Error saving rooms:', error);
-        res.status(500).json({ error: 'An error occurred while saving rooms' });
-      } finally {
-        // Clean up the uploaded file
-        fs.unlinkSync(req.file.path);
-      }
-    });
+      });
+  } catch (error) {
+    console.error('Error in /upload-csv:', error);
+    res.status(500).json({ error: 'An error occurred while processing the upload', details: error.message });
+  }
 });
 
 // Endpoint to delete all rooms for a specific hostel ID
