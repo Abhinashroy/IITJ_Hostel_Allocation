@@ -27,15 +27,15 @@ app.use(cookieParser());
 // // app.use('/uploads', express.static(__dirname+'/uploads'));
 
 
-app.use(cors({
-  origin: 'http://localhost:5173', // Update this to your frontend's URL
-  credentials: true, // Allow credentials (cookies, authorization headers)
-}));
-
-// app.use(cors({ 
-//   origin: 'https://iitj-hostel-allocation-frontend.vercel.app', // Update this to your frontend's URL
+// app.use(cors({
+//   origin: 'http://localhost:5173', // Update this to your frontend's URL
 //   credentials: true, // Allow credentials (cookies, authorization headers)
 // }));
+
+app.use(cors({ 
+  origin: 'https://iitj-hostel-allocation.vercel.app', // Update this to your frontend's URL
+  credentials: true, // Allow credentials (cookies, authorization headers)
+}));
 
 // app.use(cors(
 //   {
