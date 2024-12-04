@@ -1,28 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/RoomData.css';
 import axios from 'axios';
+import { UserContext } from "../UserContext";
 
 const RoomData = () => {
   const { hostelId, roomId } = useParams();
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State to track login status
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
   
   // Add states for allocation form and deallocation
   const [showAllocationForm, setShowAllocationForm] = useState(false);
   const [showDeallocationConfirm, setShowDeallocationConfirm] = useState(false);
   const [allocationData, setAllocationData] = useState({
     name: '',
-    rollNo: ''
+    rollNo: '',
+    checkInDate: '',
+    checkOutDate: ''
   });
   const [allocating, setAllocating] = useState(false);
   const [deallocating, setDeallocating] = useState(false);
 
   useEffect(() => {
     fetchRoomData();
+    checkLoginStatus(); // Check login status when component mounts
   }, [hostelId, roomId]);
+
+  const checkLoginStatus = async () => {
+    // localStorage.clear()
+    const token = localStorage.getItem('token'); // Assuming token is stored in local storage
+    console.log(token)
+    if (token) {
+      setIsLoggedIn(true);
+    } else {
+      setIsLoggedIn(false);
+    }
+  };
 
   const fetchRoomData = async () => {
     try {
@@ -42,9 +59,26 @@ const RoomData = () => {
 
   const handleAllocationSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      alert('Please log in to allocate rooms');
+      navigate('/login');
+      return;
+    }
+    
     setAllocating(true);
     try {
-      await axios.post(`/hostels/${hostelId}/room/${roomId}/allocate`, allocationData);
+      const requestData = {
+        name: allocationData.name,
+        rollNo: allocationData.rollNo,
+        ...(hostelId === '6727ad67cfce1a32cd0d9e45' && { // Only include dates for Hostel 4
+          checkInDate: allocationData.checkInDate,
+          checkOutDate: allocationData.checkOutDate
+        })
+      };
+
+      await axios.post(`/hostels/${hostelId}/room/${roomId}/allocate`, requestData, {
+        withCredentials: true
+      });
       await fetchRoomData();
       setShowAllocationForm(false);
     } catch (error) {
@@ -55,9 +89,17 @@ const RoomData = () => {
   };
 
   const handleDeallocation = async () => {
+    if (!user) {
+      alert('Please log in to deallocate rooms');
+      navigate('/login');
+      return;
+    }
+
     setDeallocating(true);
     try {
-      await axios.post(`/hostels/${hostelId}/room/${roomId}/deallocate`);
+      await axios.post(`/hostels/${hostelId}/room/${roomId}/deallocate`, {}, {
+        withCredentials: true
+      });
       await fetchRoomData();
       setShowDeallocationConfirm(false);
     } catch (error) {
@@ -94,6 +136,20 @@ const RoomData = () => {
                 <label>Roll Number:</label>
                 <span>{room.rollNo}</span>
               </div>
+
+              {hostelId === '6727ad67cfce1a32cd0d9e45' && room.checkInDate && (
+                <div className="detail-group">
+                  <label>Check-in Date:</label>
+                  <span>{new Date(room.checkInDate).toLocaleDateString()}</span>
+                </div>
+              )}
+
+              {hostelId === '6727ad67cfce1a32cd0d9e45' && room.checkOutDate && (
+                <div className="detail-group">
+                  <label>Check-out Date:</label>
+                  <span>{new Date(room.checkOutDate).toLocaleDateString()}</span>
+                </div>
+              )}
 
               {showDeallocationConfirm && (
                 <div className="confirmation-dialog">
@@ -138,6 +194,30 @@ const RoomData = () => {
                 />
               </div>
 
+              {hostelId === '6727ad67cfce1a32cd0d9e45' && ( // Show date fields only for Hostel 4
+                <>
+                  <div className="form-group">
+                    <label>Check-in Date:</label>
+                    <input
+                      type="date"
+                      value={allocationData.checkInDate}
+                      onChange={(e) => setAllocationData({...allocationData, checkInDate: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Check-out Date:</label>
+                    <input
+                      type="date"
+                      value={allocationData.checkOutDate}
+                      onChange={(e) => setAllocationData({...allocationData, checkOutDate: e.target.value})}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="form-buttons">
                 <button 
                   type="button" 
@@ -166,17 +246,17 @@ const RoomData = () => {
           {room.status === 'occupied' ? (
             <button 
               className="deallocate-button"
-              onClick={() => setShowDeallocationConfirm(true)}
+              onClick={() => user ? setShowDeallocationConfirm(true) : navigate('/login')}
               disabled={showDeallocationConfirm || deallocating}
             >
-              {deallocating ? 'Deallocating...' : 'Deallocate Room'}
+              {!user ? 'Login to Deallocate' : deallocating ? 'Deallocating...' : 'Deallocate Room'}
             </button>
           ) : !showAllocationForm && (
             <button 
               className="allocate-button"
-              onClick={() => setShowAllocationForm(true)}
+              onClick={() => user ? setShowAllocationForm(true) : navigate('/login')}
             >
-              Allocate Room
+              {!user ? 'Login to Allocate' : 'Allocate Room'}
             </button>
           )}
         </div>

@@ -3,6 +3,15 @@ import {useContext, useState} from "react";
 import axios from "axios";
 import {UserContext} from "../UserContext.jsx";
 
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,11 +20,30 @@ export default function LoginPage() {
   async function handleLoginSubmit(ev) {
     ev.preventDefault(); 
     try {
-      const {data} = await axios.post('/login', {email,password});
+      // const responce = await axios.post('/login', {email,password});
+      let data ;
+      axios.post('/login', {email,password})
+      .then(
+        response => {
+          let token = getCookie("token")
+          localStorage.setItem("token",token)
+          console.log(token);  
+          data = response.data
+          console.log(data)
+          setUser(data);
+        alert('Login successful');
+        setRedirect(true);
+        }
+      )
+      .catch(
+        error => {
+          alert('Login unsuccessful');
+          console.log(error);
+        }
+      )
+      // console.log(data)
       // await axios.post('/login', {email,password});
-      setUser(data);
-      alert('Login successful');
-      setRedirect(true);
+      
     } catch (e) {
       alert('Login failed !');
     }
